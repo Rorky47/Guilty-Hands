@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://chore.gd" id="1_chore"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_chore"]
+radius = 24.0
+
+[node name="Chore" type="Area2D" groups=["chores"]]
+script = ExtResource("1_chore")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_chore")

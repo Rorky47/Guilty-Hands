@@ -1,0 +1,14 @@
+# Godot 4+ import, shader, and editor cache — regenerated automatically.
+/.godot/
+
+# Exported builds / packaged games.
+/build/
+/export/
+*.pck
+*.exe
+*.zip
+
+# Mono / C# build artifacts (unused here, but harmless to pre-empt).
+.mono/
+data_*/
+mono_crash.*.json

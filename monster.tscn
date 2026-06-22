@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://monster.gd" id="1_monster"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_monster"]
+radius = 18.0
+
+[node name="Monster" type="CharacterBody2D" groups=["monster"]]
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("1_monster")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_monster")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.9, 0.2, 0.25, 1)
+polygon = PackedVector2Array(0, -22, 22, 0, 0, 22, -22, 0)

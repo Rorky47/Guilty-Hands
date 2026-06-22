@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game_manager.gd" id="1_gm"]
+[ext_resource type="PackedScene" path="res://player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://chore.tscn" id="3_chore"]
+[ext_resource type="PackedScene" path="res://monster.tscn" id="4_monster"]
+
+[node name="Main" type="Node2D"]
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("1_gm")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(576, 324)
+
+[node name="Monster" parent="." instance=ExtResource("4_monster")]
+position = Vector2(140, 120)
+
+[node name="Chore" parent="." instance=ExtResource("3_chore")]
+position = Vector2(260, 180)
+
+[node name="Chore2" parent="." instance=ExtResource("3_chore")]
+position = Vector2(880, 230)
+
+[node name="Chore3" parent="." instance=ExtResource("3_chore")]
+position = Vector2(560, 500)
