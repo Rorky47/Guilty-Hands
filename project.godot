@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
 
+AudioLib="*res://audio_lib.gd"
 NoiseBus="*res://noise.gd"
 DebugDraw="*res://debug_draw.gd"
 

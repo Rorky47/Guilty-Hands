@@ -59,13 +59,27 @@ extends CharacterBody3D
 ## Seconds between footstep noise events while moving.
 @export var noise_interval: float = 0.4
 
+@export_group("Audio")
+@export var footstep_volume_db: float = -4.0
+@export var crouch_volume_db: float = -16.0
+@export var land_volume_db: float = 0.0
+
 @onready var spring_arm: SpringArm3D = $SpringArm3D
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
+@onready var _footsteps: AudioStreamPlayer3D = $Footsteps
+@onready var _listener: AudioListener3D = $AudioListener3D
 
 var _crouching: bool = false
 var _noise_accum: float = 0.0
 var _was_on_floor: bool = true
 var _air_time: float = 0.0
+
+# Footstep sounds (loaded from res://audio/, or procedural placeholders).
+var _crouch_audio_accum: float = 0.0
+var _walk_sound: AudioStream
+var _sprint_sound: AudioStream
+var _crouch_sound: AudioStream
+var _land_sound: AudioStream
 
 
 func _ready() -> void:
@@ -73,6 +87,12 @@ func _ready() -> void:
 	# Keep the camera arm from colliding with the player's own body.
 	spring_arm.add_excluded_object(get_rid())
 	camera.fov = base_fov
+	# Hear from the player's head, not from the camera behind them.
+	_listener.make_current()
+	_walk_sound = AudioLib.load_stream("footstep_walk")
+	_sprint_sound = AudioLib.load_stream("footstep_sprint")
+	_crouch_sound = AudioLib.load_stream("footstep_crouch")
+	_land_sound = AudioLib.load_stream("land")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -158,6 +178,7 @@ func _emit_movement_noise(delta: float, sprinting: bool) -> void:
 	if on_floor and not _was_on_floor:
 		if _air_time > 0.15:
 			NoiseBus.emit_noise(global_position, land_noise)
+			_play_footstep(_land_sound, land_volume_db)  # sound rides the same landing trigger
 		_air_time = 0.0
 	elif not on_floor:
 		_air_time += delta
@@ -170,9 +191,28 @@ func _emit_movement_noise(delta: float, sprinting: bool) -> void:
 		if _noise_accum >= noise_interval:
 			_noise_accum = 0.0
 			NoiseBus.emit_noise(global_position, sprint_noise if sprinting else walk_noise)
+			_play_footstep(_sprint_sound if sprinting else _walk_sound, footstep_volume_db)
 	else:
 		# Idle/crouching: prime the timer so the first step rings out promptly.
 		_noise_accum = noise_interval
+
+	# Crouch footsteps are audible to the player but emit NO noise (silent to the
+	# hunter). A separate accumulator keeps the noise logic above untouched.
+	if on_floor and moving and _crouching:
+		_crouch_audio_accum += delta
+		if _crouch_audio_accum >= noise_interval:
+			_crouch_audio_accum = 0.0
+			_play_footstep(_crouch_sound, crouch_volume_db)
+	else:
+		_crouch_audio_accum = noise_interval
+
+
+func _play_footstep(stream: AudioStream, vol_db: float) -> void:
+	if stream == null:
+		return
+	_footsteps.stream = stream
+	_footsteps.volume_db = vol_db
+	_footsteps.play()
 
 
 func _process(delta: float) -> void:

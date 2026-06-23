@@ -34,7 +34,19 @@ enum State { INACTIVE, HUNTING, SEARCHING, WANDERING }
 @export var activation_delay: float = 3.0
 @export var gravity: float = 20.0
 
+@export_group("Audio")
+## Generous so you hear it coming across the tunnel.
+@export var hunter_audio_max_distance: float = 25.0
+@export var idle_volume_db: float = -14.0
+@export var move_volume_db: float = -6.0
+@export var alert_volume_db: float = 0.0
+## Horizontal speed (m/s) above which the move/shuffle sound plays.
+@export var move_audio_threshold: float = 0.3
+
 @onready var nav_agent: NavigationAgent3D = $NavigationAgent3D
+@onready var _audio_idle: AudioStreamPlayer3D = $AudioIdle
+@onready var _audio_move: AudioStreamPlayer3D = $AudioMove
+@onready var _audio_alert: AudioStreamPlayer3D = $AudioAlert
 
 # Observable state — read by the debug overlay. Never exposes player position.
 var state: State = State.INACTIVE
@@ -45,13 +57,47 @@ var _last_heard: Vector3 = Vector3.ZERO
 var _search_timer: float = 0.0
 var _path_age: int = 0
 var _caught: bool = false
+var _prev_audio_state: State = State.INACTIVE
 
 
 func _ready() -> void:
 	NoiseBus.noise_made.connect(_on_noise_made)
+	_setup_audio()
 	# Head start: stay inactive (and deaf) for the delay, then start wandering.
 	await get_tree().create_timer(activation_delay).timeout
 	_enter_wandering()
+
+
+func _setup_audio() -> void:
+	for p in [_audio_idle, _audio_move, _audio_alert]:
+		p.max_distance = hunter_audio_max_distance
+	_audio_idle.stream = AudioLib.load_stream("hunter_idle", true)
+	_audio_move.stream = AudioLib.load_stream("hunter_move", true)
+	_audio_alert.stream = AudioLib.load_stream("hunter_alert", false)
+	_audio_idle.volume_db = idle_volume_db
+	_audio_alert.volume_db = alert_volume_db
+	# Idle growl/breath is a constant lurking presence, even while wandering.
+	if _audio_idle.stream != null:
+		_audio_idle.play()
+
+
+## Audio only — reads the hunter's own velocity/state, never the player. Kept out
+## of _physics_process so the AI and state machine stay untouched.
+func _process(_delta: float) -> void:
+	var speed := Vector2(velocity.x, velocity.z).length()
+	if _audio_move.stream != null:
+		if speed > move_audio_threshold:
+			if not _audio_move.playing:
+				_audio_move.play()
+			# Louder the faster it moves.
+			_audio_move.volume_db = move_volume_db + linear_to_db(clampf(speed / chase_speed, 0.25, 1.0))
+		elif _audio_move.playing:
+			_audio_move.stop()
+	# One-shot stinger the moment it locks onto a fresh trail.
+	if state == State.HUNTING and _prev_audio_state != State.HUNTING:
+		if _audio_alert.stream != null:
+			_audio_alert.play()
+	_prev_audio_state = state
 
 
 func _physics_process(delta: float) -> void:
