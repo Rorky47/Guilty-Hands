@@ -1,6 +1,9 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://player3d.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://hunter.tscn" id="2_hunter"]
+[ext_resource type="Script" path="res://main3d.gd" id="3_main"]
+[ext_resource type="Script" path="res://catch_ui.gd" id="4_catchui"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_unit"]
 size = Vector3(1, 1, 1)
@@ -84,7 +87,19 @@ ambient_light_source = 3
 ambient_light_energy = 1.0
 tonemap_mode = 2
 
+[sub_resource type="NavigationMesh" id="navmesh"]
+agent_height = 1.8
+agent_radius = 0.5
+agent_max_climb = 0.3
+cell_size = 0.2
+cell_height = 0.2
+geometry_parsed_geometry_type = 1
+geometry_collision_mask = 1
+geometry_source_geometry_mode = 1
+geometry_source_group_name = &"nav_source"
+
 [node name="Main3D" type="Node3D"]
+script = ExtResource("3_main")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("env")
@@ -93,7 +108,10 @@ environment = SubResource("env")
 transform = Transform3D(0.766044, 0, 0.642788, 0.492404, 0.642788, -0.586824, -0.413176, 0.766044, 0.492404, 0, 20, 0)
 shadow_enabled = true
 
-[node name="Ground" type="StaticBody3D" parent="."]
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("navmesh")
+
+[node name="Ground" type="StaticBody3D" parent="." groups=["nav_source"]]
 transform = Transform3D(60, 0, 0, 0, 1, 0, 0, 0, 60, 0, -0.5, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Ground"]
@@ -103,7 +121,7 @@ surface_material_override/0 = SubResource("mat_ground")
 [node name="Col" type="CollisionShape3D" parent="Ground"]
 shape = SubResource("BoxShape3D_unit")
 
-[node name="Walls" type="Node3D" parent="."]
+[node name="Walls" type="Node3D" parent="." groups=["nav_source"]]
 
 [node name="OuterN" type="StaticBody3D" parent="Walls"]
 transform = Transform3D(61, 0, 0, 0, 3, 0, 0, 0, 1, 0, 1.5, -30)
@@ -265,7 +283,7 @@ surface_material_override/0 = SubResource("mat_wall")
 [node name="Col" type="CollisionShape3D" parent="Walls/PillarSE"]
 shape = SubResource("BoxShape3D_unit")
 
-[node name="Cover" type="Node3D" parent="."]
+[node name="Cover" type="Node3D" parent="." groups=["nav_source"]]
 
 [node name="C1" type="StaticBody3D" parent="Cover"]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, -20, 1, -20)
@@ -389,3 +407,20 @@ shape = SubResource("BoxShape3D_unit")
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+
+[node name="Hunter" parent="." instance=ExtResource("2_hunter")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 1, -26)
+
+[node name="CatchUI" type="CanvasLayer" parent="."]
+process_mode = 3
+script = ExtResource("4_catchui")
+
+[node name="Label" type="Label" parent="CatchUI"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 48
+text = "CAUGHT — press R to restart"

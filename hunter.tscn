@@ -1,0 +1,34 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://hunter.gd" id="1_hunter"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hunter"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_hunter"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="mat_hunter"]
+albedo_color = Color(0.8, 0.15, 0.12, 1)
+roughness = 1.0
+
+[node name="Hunter" type="CharacterBody3D" groups=["hunter"]]
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_hunter")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_hunter")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_hunter")
+surface_material_override/0 = SubResource("mat_hunter")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.5
+target_desired_distance = 1.0
+avoidance_enabled = false
