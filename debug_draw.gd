@@ -1,23 +1,29 @@
 extends Node
-## F3 debug overlay (autoload "DebugDraw") for tuning the blind hunter.
+## F3 debug overlay (autoload "DebugDraw") for tuning the hunter's sound trail.
 ##
 ## Toggling it on draws:
-##  - every noise event as a translucent sphere of its radius (~1s), so you can
-##    see exactly how far each sound reaches,
-##  - the hunter's current state as on-screen text,
-##  - the hunter's current investigate target as a floating marker.
+##  - every LIVE sound clue as a sphere whose size + alpha scale with its current
+##    (decaying) strength, so you can watch the trail fade,
+##  - a line from the hunter to its current LEAD clue (the one it's perceiving
+##    strongest), with the lead clue tinted distinctly,
+##  - the hunter's state + lead readout as on-screen text.
 ##
-## It only reads the hunter's *observable* state (state/target), never the
-## player's position, so switching it on doesn't change what the AI "knows".
+## It reads only the hunter's observable state and the public sound field, never
+## the player's position, so switching it on doesn't change what the AI "knows".
 
 @export var enabled: bool = false
-@export var noise_marker_lifetime: float = 1.0
+## Metres of sphere radius per unit of clue strength.
+@export var clue_size_scale: float = 0.12
 
 var _layer: CanvasLayer
 var _label: Label
-var _marker: MeshInstance3D
-var _noise_mat: StandardMaterial3D
-var _marker_mat: StandardMaterial3D
+var _clue_mesh: SphereMesh
+var _line_mat: StandardMaterial3D
+
+# Live in the 3D scene (rebuilt on restart), so refs can go stale -> recreated.
+var _field_root: Node3D
+var _clue_pool: Array[MeshInstance3D] = []
+var _lead_line: MeshInstance3D
 
 
 func _ready() -> void:
@@ -32,17 +38,15 @@ func _ready() -> void:
 	_label.visible = false
 	_layer.add_child(_label)
 
-	_noise_mat = StandardMaterial3D.new()
-	_noise_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_noise_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_noise_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_noise_mat.albedo_color = Color(0.2, 0.8, 1.0, 0.12)
+	_clue_mesh = SphereMesh.new()
+	_clue_mesh.radius = 1.0
+	_clue_mesh.height = 2.0
+	_clue_mesh.radial_segments = 12
+	_clue_mesh.rings = 6
 
-	_marker_mat = StandardMaterial3D.new()
-	_marker_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_marker_mat.albedo_color = Color(1.0, 0.25, 0.8)
-
-	NoiseBus.noise_made.connect(_on_noise_made)
+	_line_mat = StandardMaterial3D.new()
+	_line_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_line_mat.albedo_color = Color(1.0, 0.6, 0.1)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -50,76 +54,95 @@ func _unhandled_input(event: InputEvent) -> void:
 		enabled = not enabled
 		if not enabled:
 			_label.visible = false
-			if is_instance_valid(_marker):
-				_marker.visible = false
+			_hide_field()
 
 
 func _process(_delta: float) -> void:
 	if not enabled:
 		return
-	var hunter := get_tree().get_first_node_in_group("hunter")
-	if hunter == null:
-		_label.visible = false
+	var scene := get_tree().current_scene
+	if scene == null:
 		return
+	_ensure_field_nodes(scene)
+
+	var hunter := get_tree().get_first_node_in_group("hunter")
+	var clues := NoiseBus.get_clues()
+
+	var has_lead: bool = hunter != null and hunter.has_lead
+	var lead_pos: Vector3 = hunter.lead_position if has_lead else Vector3.ZERO
+
+	# Draw / update one sphere per live clue (pooled).
+	while _clue_pool.size() < clues.size():
+		_clue_pool.append(_make_clue_sphere())
+	for i in range(_clue_pool.size()):
+		var mi := _clue_pool[i]
+		if i >= clues.size():
+			mi.visible = false
+			continue
+		var c = clues[i]
+		var s: float = c.current_strength
+		mi.visible = true
+		mi.global_position = c.position + Vector3(0.0, 0.3, 0.0)
+		var r := clampf(s * clue_size_scale, 0.3, 2.5)
+		mi.scale = Vector3(r, r, r)
+		var mat: StandardMaterial3D = mi.material_override
+		if has_lead and c.position.is_equal_approx(lead_pos):
+			mat.albedo_color = Color(1.0, 0.7, 0.15, clampf(s * 0.05 + 0.2, 0.25, 0.7))
+		else:
+			mat.albedo_color = Color(0.2, 0.8, 1.0, clampf(s * 0.03, 0.06, 0.45))
+
+	# Draw the hunter -> lead line.
+	var im := _lead_line.mesh as ImmediateMesh
+	im.clear_surfaces()
+	if hunter != null and has_lead:
+		im.surface_begin(Mesh.PRIMITIVE_LINES, _line_mat)
+		im.surface_add_vertex(hunter.global_position + Vector3(0.0, 0.8, 0.0))
+		im.surface_add_vertex(lead_pos + Vector3(0.0, 0.8, 0.0))
+		im.surface_end()
+		_lead_line.visible = true
+	else:
+		_lead_line.visible = false
+
+	# State readout.
 	_label.visible = true
-	var target_text := "none"
-	if hunter.has_target:
-		var t: Vector3 = hunter.investigate_target
-		target_text = "(%.1f, %.1f)" % [t.x, t.z]
-	_label.text = "HUNTER DEBUG (F3)\nstate: %s\ntarget: %s" % [hunter.get_state_name(), target_text]
-	_update_marker(hunter)
+	if hunter == null:
+		_label.text = "HUNTER DEBUG (F3)\nno hunter"
+	else:
+		var lead_txt := "none"
+		if has_lead:
+			lead_txt = "%.1f @ (%.0f, %.0f)" % [hunter.lead_strength, lead_pos.x, lead_pos.z]
+		_label.text = "HUNTER DEBUG (F3)\nstate: %s\nlead: %s\nlive clues: %d" % [
+			hunter.get_state_name(), lead_txt, clues.size()]
 
 
-func _on_noise_made(position: Vector3, radius: float) -> void:
-	if not enabled:
+func _ensure_field_nodes(scene: Node) -> void:
+	if is_instance_valid(_field_root) and _field_root.get_parent() == scene:
 		return
-	var scene := get_tree().current_scene
-	if scene == null:
-		return
-
-	# Tint by whether the hunter can actually hear this noise (path distance
-	# through the navmesh), so you can see which footsteps the walls swallow:
-	# GREEN = heard, RED = occluded/out of range.
-	var heard := false
-	var hunter := get_tree().get_first_node_in_group("hunter")
-	if hunter != null:
-		heard = hunter.can_hear(position, radius)
-	var mat := (_noise_mat.duplicate() as StandardMaterial3D)
-	mat.albedo_color = Color(0.2, 1.0, 0.3, 0.13) if heard else Color(1.0, 0.2, 0.2, 0.13)
-
-	var bubble := MeshInstance3D.new()
-	var mesh := SphereMesh.new()
-	mesh.radius = 1.0
-	mesh.height = 2.0
-	mesh.radial_segments = 16
-	mesh.rings = 8
-	bubble.mesh = mesh
-	bubble.material_override = mat
-	bubble.scale = Vector3(radius, radius, radius)
-	bubble.position = position
-	scene.add_child(bubble)
-	var timer := get_tree().create_timer(noise_marker_lifetime)
-	timer.timeout.connect(func() -> void:
-		if is_instance_valid(bubble):
-			bubble.queue_free())
+	# First run, or the scene was rebuilt (restart): start a fresh pool.
+	_clue_pool.clear()
+	_field_root = Node3D.new()
+	_field_root.name = "DebugSoundField"
+	scene.add_child(_field_root)
+	_lead_line = MeshInstance3D.new()
+	_lead_line.mesh = ImmediateMesh.new()
+	_field_root.add_child(_lead_line)
 
 
-func _update_marker(hunter: Node) -> void:
-	var scene := get_tree().current_scene
-	if scene == null:
-		return
-	# (Re)create lazily — the marker lives in the 3D scene, which is rebuilt on
-	# restart, so its reference can go stale.
-	if not is_instance_valid(_marker):
-		_marker = MeshInstance3D.new()
-		var mesh := SphereMesh.new()
-		mesh.radius = 0.4
-		mesh.height = 0.8
-		mesh.radial_segments = 10
-		mesh.rings = 6
-		_marker.mesh = mesh
-		_marker.material_override = _marker_mat
-		scene.add_child(_marker)
-	_marker.visible = hunter.has_target
-	if hunter.has_target:
-		_marker.global_position = (hunter.investigate_target as Vector3) + Vector3(0.0, 1.0, 0.0)
+func _make_clue_sphere() -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = _clue_mesh
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = mat
+	_field_root.add_child(mi)
+	return mi
+
+
+func _hide_field() -> void:
+	for mi in _clue_pool:
+		if is_instance_valid(mi):
+			mi.visible = false
+	if is_instance_valid(_lead_line):
+		_lead_line.visible = false

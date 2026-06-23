@@ -30,7 +30,7 @@ surface_material_override/0 = SubResource("mat_hunter")
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 path_desired_distance = 0.5
-target_desired_distance = 1.0
+target_desired_distance = 0.5
 avoidance_enabled = false
 
 [node name="AudioIdle" type="AudioStreamPlayer3D" parent="."]

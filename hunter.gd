@@ -1,18 +1,20 @@
 extends CharacterBody3D
-## AI hunter — step 2 of 3: BLIND. It hunts purely by hearing.
+## AI hunter — hunts a DECAYING SOUND TRAIL.
 ##
-## The hunter no longer knows where the player is. It listens on the global Noise
-## bus; a noise is only "heard" if the hunter is within that noise's radius.
-## Hearing sends it to investigate (HUNTING). With nothing left to chase it
-## SEARCHES the area, then falls back to WANDERING until it hears something again.
+## The hunter has NO knowledge of the player. Every frame it reads the global
+## sound field (NoiseBus.get_clues()) and scores each live clue by PERCEIVED
+## strength = current_strength - perception_falloff * nav-path-distance. The
+## best-perceived clue is the LEAD, and the whole state machine is derived from
+## it: a loud near lead -> HUNTING, a faint one -> SEARCHING, none -> WANDERING.
+## Because fresh, loud clues keep appearing wherever the player moves, the lead
+## keeps updating and the hunter pursues continuously instead of giving up.
 ##
 ## HARD RULE: the hunter MUST NOT read the player's position anywhere except the
-## final proximity catch check (_check_catch). Everything else it knows about the
-## player comes from noise events delivered by the bus.
+## final proximity catch check (_check_catch). Everything else comes from clues.
 ##
-## "Choose a destination" (the state machine + _set_destination) is kept separate
-## from "move toward a destination" (_move_along_path / _steer_toward) so a
-## director — or a human — could drive the same body later.
+## "Choose a destination" (_update_state_and_destination / _set_destination) is
+## kept separate from "steer toward a destination" (_move_along_path /
+## _steer_toward) so a director — or a human — could drive the same body later.
 
 signal caught
 
@@ -23,14 +25,24 @@ enum State { INACTIVE, HUNTING, SEARCHING, WANDERING }
 @export var search_speed: float = 3.0
 @export var wander_speed: float = 2.0
 
+@export_group("Perception")
+## Perceived strength lost per metre of NAV-PATH distance to a clue. Walls
+## lengthen the path, so they muffle; a severed path is inaudible.
+@export var perception_falloff: float = 0.6
+## Perceived strength at/above which a clue triggers a full-speed HUNT.
+@export var hunting_threshold: float = 3.0
+
 @export_group("Behaviour")
 @export var catch_range: float = 1.2
+## Radius of the random pokes while searching around a faint lead.
 @export var search_radius: float = 6.0
-@export var search_seconds: float = 4.0
-## How far wandering scatters its random roam points.
+## Radius for uniform wandering before anything has ever been sensed.
 @export var wander_range: float = 18.0
-## Head start: the hunter is deaf and still for this long at round start. Also
-## overlaps the runtime navmesh bake in Main3D.
+## After losing the trail, bias wander points to this radius around the last
+## place a clue was sensed (a past SOUND location — never the live player).
+@export var wander_bias_radius: float = 14.0
+## Head start: the hunter is inactive for this long at round start. Also overlaps
+## the runtime navmesh bake in Main3D.
 @export var activation_delay: float = 3.0
 @export var gravity: float = 20.0
 
@@ -52,20 +64,25 @@ enum State { INACTIVE, HUNTING, SEARCHING, WANDERING }
 var state: State = State.INACTIVE
 var investigate_target: Vector3 = Vector3.ZERO
 var has_target: bool = false
+var has_lead: bool = false
+var lead_position: Vector3 = Vector3.ZERO
+var lead_strength: float = 0.0
 
-var _last_heard: Vector3 = Vector3.ZERO
-var _search_timer: float = 0.0
+var last_sensed: Vector3 = Vector3.ZERO
+var _has_last_sensed: bool = false
+var _lead = null  # the lead Clue object (NoiseBus.Clue) or null
+var _lead_perceived: float = 0.0
 var _path_age: int = 0
 var _caught: bool = false
 var _prev_audio_state: State = State.INACTIVE
 
 
 func _ready() -> void:
-	NoiseBus.noise_made.connect(_on_noise_made)
 	_setup_audio()
-	# Head start: stay inactive (and deaf) for the delay, then start wandering.
+	# Head start: stay inactive for the delay, then begin wandering; from then on
+	# perception of the sound field drives the state each frame.
 	await get_tree().create_timer(activation_delay).timeout
-	_enter_wandering()
+	state = State.WANDERING
 
 
 func _setup_audio() -> void:
@@ -81,8 +98,7 @@ func _setup_audio() -> void:
 		_audio_idle.play()
 
 
-## Audio only — reads the hunter's own velocity/state, never the player. Kept out
-## of _physics_process so the AI and state machine stay untouched.
+## Audio only — reads the hunter's own velocity/state, never the player.
 func _process(_delta: float) -> void:
 	var speed := Vector2(velocity.x, velocity.z).length()
 	if _audio_move.stream != null:
@@ -116,70 +132,78 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
-	# Move toward the current destination (this also drives path computation)...
+	_perceive()                      # read the sound field -> current lead
+	_path_age += 1
+	_update_state_and_destination()  # pick a destination (separate from steering)
+
 	if has_target:
-		_move_along_path(_current_speed())
+		_move_along_path(_current_speed())  # steer toward the destination
 	else:
 		_halt_horizontal()
-
-	# ...then update the state machine based on arrival / timers.
-	_advance_state(delta)
 
 	move_and_slide()
 
 
-# ----------------------------------------------------------------- hearing
+# --------------------------------------------------------------- perception
 
-func _on_noise_made(position: Vector3, radius: float) -> void:
-	if _caught or state == State.INACTIVE:
-		return
-	# Heard only if within range *along the navmesh* (walls/corners lengthen or
-	# sever the route — see can_hear). The position is the noise event's, never
-	# the player node — it's the hunter's sole knowledge of the player's
-	# whereabouts (i.e. a last-known-location).
-	if can_hear(position, radius):
-		_last_heard = position
-		state = State.HUNTING
-		_set_destination(_snap_to_nav(position))
+## Score every live clue by perceived strength and keep the best as the LEAD.
+## Perceived strength falls off with NAV-PATH distance (occlusion), so a clue
+## past a wall is muffled and a clue with no route is skipped entirely.
+func _perceive() -> void:
+	_lead = null
+	_lead_perceived = 0.0
+	for c in NoiseBus.get_clues():
+		var path_len := _path_length_to(c.position)
+		if path_len < 0.0:
+			continue  # unreachable / no path -> not perceivable
+		var perceived: float = c.current_strength - perception_falloff * path_len
+		if perceived > _lead_perceived:  # perceivable only when > 0
+			_lead_perceived = perceived
+			_lead = c
+	has_lead = _lead != null
+	if has_lead:
+		lead_position = _lead.position
+		lead_strength = _lead_perceived
+		# Remember where we last sensed a SOUND, for the wander nudge.
+		last_sensed = _lead.position
+		_has_last_sensed = true
 
 
-# ------------------------------------------------------------ state machine
+## Derive the state purely from the perceived field, then choose a destination
+## for that state. Steering is done separately in _move_along_path.
+func _update_state_and_destination() -> void:
+	var new_state: State
+	if has_lead:
+		new_state = State.HUNTING if _lead_perceived >= hunting_threshold else State.SEARCHING
+	else:
+		new_state = State.WANDERING
+	var changed := new_state != state
+	state = new_state
 
-func _advance_state(delta: float) -> void:
 	match state:
 		State.HUNTING:
-			if _reached_destination():
-				_enter_searching()
+			# Track the freshest/loudest clue, but only re-target when it has moved
+			# enough. Re-pathing every single frame makes the agent recompute from
+			# scratch and stall ~1 m short; a small threshold lets the path settle so
+			# it arrives (and catches), while still following a moving trail.
+			var dest := _snap_to_nav(lead_position)
+			if changed or not has_target or investigate_target.distance_to(dest) > 0.3:
+				_set_destination(dest)
 		State.SEARCHING:
-			_search_timer -= delta
-			if _search_timer <= 0.0:
-				_enter_wandering()
-			elif _reached_destination():
-				_pick_search_point()
+			# Move toward the faint lead while poking random points around it.
+			if changed or not has_target or _reached_destination():
+				_set_destination(_random_nav_point(lead_position, search_radius))
 		State.WANDERING:
-			if _reached_destination():
-				_pick_wander_point()
-	_path_age += 1
+			if changed or not has_target or _reached_destination():
+				_set_destination(_wander_point())
 
 
-func _enter_searching() -> void:
-	state = State.SEARCHING
-	_search_timer = search_seconds
-	_pick_search_point()
-
-
-func _enter_wandering() -> void:
-	state = State.WANDERING
-	_pick_wander_point()
-
-
-func _pick_search_point() -> void:
-	# Poke around random spots near where the noise was last heard.
-	_set_destination(_random_nav_point(_last_heard, search_radius))
-
-
-func _pick_wander_point() -> void:
-	_set_destination(_random_nav_point(global_position, wander_range))
+## A roam destination. Director nudge: after losing the trail, drift back toward
+## where a clue was last sensed; otherwise wander uniformly.
+func _wander_point() -> Vector3:
+	if _has_last_sensed:
+		return _random_nav_point(last_sensed, wander_bias_radius)
+	return _random_nav_point(global_position, wander_range)
 
 
 # --------------------------------------------------- destinations & movement
@@ -255,38 +279,33 @@ func _snap_to_nav(point: Vector3) -> Vector3:
 	return NavigationServer3D.map_get_closest_point(map, point)
 
 
-## True if a noise at `position` with the given `radius` reaches the hunter.
-##
-## Sound occlusion: instead of straight-line distance, this measures how far the
-## sound has to travel *along the navmesh* — around walls and corners, the same
-## way the hunter would have to walk. A noise just past a wall is muffled by the
-## long way around; a noise in a sealed-off area is inaudible.
-##
-## Later phases: a closed door will carve a gap out of the navmesh, lengthening
-## or removing the path here — so this same check will block sound through a shut
-## door automatically, with no special-casing for doors.
-func can_hear(position: Vector3, radius: float) -> bool:
+## Nav-path distance from the hunter to `to`, or -1 if there's no usable route.
+## This IS the sound-occlusion model: distance is measured AROUND walls along the
+## navmesh, not straight-line, so walls muffle (longer path) or block (no path).
+## (Later: a closed door will carve the navmesh and lengthen/sever this path,
+## blocking sound through it automatically, with no special-casing for doors.)
+func _path_length_to(to: Vector3) -> float:
 	var map := nav_agent.get_navigation_map()
-	# Pre-bake / no map yet: fall back to straight-line so hearing still works.
 	if not map.is_valid():
-		return global_position.distance_to(position) <= radius
-
-	var path := NavigationServer3D.map_get_path(map, global_position, position, true)
-	# Fewer than two points means there's no route at all — inaudible.
+		return global_position.distance_to(to)  # pre-bake fallback: straight line
+	var path := NavigationServer3D.map_get_path(map, global_position, to, true)
 	if path.size() < 2:
-		return false
-
-	# Reachability guard: map_get_path returns the closest *reachable* point when
-	# the destination can't be reached (e.g. sealed behind a wall). If the path
-	# doesn't actually end at the noise, it didn't get there — treat as unheard,
-	# so a wall can't fake audibility via its nearest navmesh edge.
-	if path[path.size() - 1].distance_to(position) > 1.0:
-		return false
-
-	var path_length := 0.0
+		return -1.0
+	# Reachability guard: map_get_path returns the closest reachable point when the
+	# target is sealed off; if the path doesn't end at `to`, treat as unreachable.
+	if path[path.size() - 1].distance_to(to) > 1.0:
+		return -1.0
+	var length := 0.0
 	for i in range(1, path.size()):
-		path_length += path[i].distance_to(path[i - 1])
-	return path_length <= radius
+		length += path[i].distance_to(path[i - 1])
+	return length
+
+
+## True if a sound of the given `radius` at `position` reaches the hunter along
+## the navmesh. Kept as the named occlusion-check entry point.
+func can_hear(position: Vector3, radius: float) -> bool:
+	var path_len := _path_length_to(position)
+	return path_len >= 0.0 and path_len <= radius
 
 
 func _check_catch() -> void:
@@ -314,6 +333,7 @@ func _trigger_caught() -> void:
 	_caught = true
 	velocity = Vector3.ZERO
 	has_target = false
+	has_lead = false
 	caught.emit()
 
 
