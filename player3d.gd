@@ -47,8 +47,25 @@ extends CharacterBody3D
 ## Roughly how long the sprint FOV kick takes to settle, in seconds.
 @export var fov_kick_time: float = 0.15
 
+@export_group("Noise & Stealth")
+## Footstep noise radius while walking.
+@export var walk_noise: float = 8.0
+## Footstep noise radius while sprinting.
+@export var sprint_noise: float = 20.0
+## One-off noise radius when landing a jump.
+@export var land_noise: float = 12.0
+## Move speed while crouching/creeping — which is also completely silent.
+@export var crouch_speed: float = 2.5
+## Seconds between footstep noise events while moving.
+@export var noise_interval: float = 0.4
+
 @onready var spring_arm: SpringArm3D = $SpringArm3D
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
+
+var _crouching: bool = false
+var _noise_accum: float = 0.0
+var _was_on_floor: bool = true
+var _air_time: float = 0.0
 
 
 func _ready() -> void:
@@ -75,6 +92,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE
 	):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif (
+		event is InputEventKey
+		and event.pressed
+		and not event.echo
+		and event.physical_keycode == KEY_CTRL
+	):
+		# Toggle crouch/creep: slower movement, and silent (emits no noise).
+		_crouching = not _crouching
 
 
 func _physics_process(delta: float) -> void:
@@ -94,7 +119,15 @@ func _physics_process(delta: float) -> void:
 	)
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 
-	var speed: float = sprint_speed if Input.is_action_pressed("sprint") else move_speed
+	# Crouch overrides sprint: you can't sprint while creeping.
+	var sprinting := Input.is_action_pressed("sprint") and not _crouching
+	var speed: float
+	if _crouching:
+		speed = crouch_speed
+	elif sprinting:
+		speed = sprint_speed
+	else:
+		speed = move_speed
 
 	# Work with horizontal velocity as a Vector2 so move_toward stays
 	# frame-rate independent across both axes at once.
@@ -112,11 +145,40 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	_emit_movement_noise(delta, sprinting)
+
+
+## Turn the player's movement into discrete noise events on the global Noise bus.
+## Crouching is silent; walking and sprinting ring out at different radii; landing
+## a jump is a one-off. The hunter decides for itself whether it's close enough.
+func _emit_movement_noise(delta: float, sprinting: bool) -> void:
+	var on_floor := is_on_floor()
+
+	# Landing noise: an air -> ground transition after a real fall/jump.
+	if on_floor and not _was_on_floor:
+		if _air_time > 0.15:
+			NoiseBus.emit_noise(global_position, land_noise)
+		_air_time = 0.0
+	elif not on_floor:
+		_air_time += delta
+	_was_on_floor = on_floor
+
+	# Footstep noise while actually moving on the ground (silent when crouching).
+	var moving := Vector2(velocity.x, velocity.z).length() > 0.5
+	if on_floor and moving and not _crouching:
+		_noise_accum += delta
+		if _noise_accum >= noise_interval:
+			_noise_accum = 0.0
+			NoiseBus.emit_noise(global_position, sprint_noise if sprinting else walk_noise)
+	else:
+		# Idle/crouching: prime the timer so the first step rings out promptly.
+		_noise_accum = noise_interval
+
 
 func _process(delta: float) -> void:
 	# Sprint FOV kick: only while actually moving, not just holding Shift still.
 	var moving := Vector2(velocity.x, velocity.z).length() > 1.0
-	var sprinting := Input.is_action_pressed("sprint") and moving
+	var sprinting := Input.is_action_pressed("sprint") and moving and not _crouching
 	var target_fov := sprint_fov if sprinting else base_fov
 	# Frame-rate-independent smoothing that settles ~99% over fov_kick_time.
 	var weight := 1.0 - pow(0.01, delta / maxf(fov_kick_time, 0.0001))

@@ -18,6 +18,11 @@ config/name="Guilty Hands"
 run/main_scene="res://Main3D.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
+[autoload]
+
+NoiseBus="*res://noise.gd"
+DebugDraw="*res://debug_draw.gd"
+
 [input]
 
 move_forward={
