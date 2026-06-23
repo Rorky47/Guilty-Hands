@@ -32,3 +32,4 @@ spring_length = 4.5
 margin = 0.2
 
 [node name="Camera3D" type="Camera3D" parent="SpringArm3D"]
+fov = 85.0

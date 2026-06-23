@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="PackedScene" path="res://player3d.tscn" id="1_player"]
 
@@ -8,9 +8,57 @@ size = Vector3(1, 1, 1)
 [sub_resource type="BoxShape3D" id="BoxShape3D_unit"]
 size = Vector3(1, 1, 1)
 
-[sub_resource type="StandardMaterial3D" id="mat_ground"]
-albedo_color = Color(0.35, 0.42, 0.3, 1)
-roughness = 1.0
+[sub_resource type="Shader" id="grid_shader"]
+code = "shader_type spatial;
+render_mode cull_back, diffuse_burley;
+
+// World-space grid: thin line every `cell_size` metres, brighter line every
+// `major_every` cells. Because it keys off world position it stays a fixed
+// real-world size and streams past as the player moves.
+uniform vec3 base_color : source_color = vec3(0.35, 0.42, 0.3);
+uniform vec3 minor_color : source_color = vec3(0.5, 0.55, 0.5);
+uniform vec3 major_color : source_color = vec3(0.85, 0.9, 0.85);
+uniform float cell_size = 1.0;
+uniform float major_every = 5.0;
+uniform float minor_thickness = 1.0;
+uniform float major_thickness = 1.8;
+uniform float ground_roughness : hint_range(0.0, 1.0) = 1.0;
+
+varying vec3 world_pos;
+
+float grid_mask(vec2 coord, float thickness) {
+	// Screen-space derivative keeps the line a steady thin width at any distance.
+	vec2 d = fwidth(coord);
+	vec2 g = abs(fract(coord - 0.5) - 0.5) / max(d * thickness, vec2(0.00001));
+	float line = min(g.x, g.y);
+	return 1.0 - clamp(line, 0.0, 1.0);
+}
+
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+	float minor = grid_mask(world_pos.xz / cell_size, minor_thickness);
+	float major = grid_mask(world_pos.xz / (cell_size * major_every), major_thickness);
+	vec3 col = mix(base_color, minor_color, minor);
+	col = mix(col, major_color, major);
+	ALBEDO = col;
+	ROUGHNESS = ground_roughness;
+	METALLIC = 0.0;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="mat_ground"]
+shader = SubResource("grid_shader")
+shader_parameter/base_color = Color(0.35, 0.42, 0.3, 1)
+shader_parameter/minor_color = Color(0.5, 0.55, 0.5, 1)
+shader_parameter/major_color = Color(0.85, 0.9, 0.85, 1)
+shader_parameter/cell_size = 1.0
+shader_parameter/major_every = 5.0
+shader_parameter/minor_thickness = 1.0
+shader_parameter/major_thickness = 1.8
+shader_parameter/ground_roughness = 1.0
 
 [sub_resource type="StandardMaterial3D" id="mat_wall"]
 albedo_color = Color(0.55, 0.56, 0.6, 1)
