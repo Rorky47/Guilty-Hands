@@ -1,0 +1,455 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8jqgr"]
+albedo_color = Color(0.11, 0.13, 0.12, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="BoxMesh_firpc"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_00owb"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hfrff"]
+albedo_color = Color(0.23, 0.28, 0.26, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ulhbk"]
+transparency = 1
+albedo_color = Color(0.13, 0.34, 0.55, 0.45)
+metallic = 0.1
+roughness = 0.25
+
+[sub_resource type="BoxMesh" id="BoxMesh_gn1t6"]
+size = Vector3(7.2, 0.1, 7.2)
+
+[node name="Tunnel" type="Node3D" unique_id=1569010149]
+
+[node name="Floors" type="Node3D" parent="." unique_id=1876091782 groups=["nav_source"]]
+
+[node name="Hub" type="StaticBody3D" parent="Floors" unique_id=990322308]
+transform = Transform3D(8, 0, 0, 0, 0.5, 0, 0, 0, 8, 0, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/Hub" unique_id=1083948217]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/Hub" unique_id=721161914]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="WestCorridor" type="StaticBody3D" parent="Floors" unique_id=1467709209]
+transform = Transform3D(5, 0, 0, 0, 0.5, 0, 0, 0, 31, -13, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/WestCorridor" unique_id=566047737]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/WestCorridor" unique_id=226266849]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="EastCorridor" type="StaticBody3D" parent="Floors" unique_id=1963463884]
+transform = Transform3D(5, 0, 0, 0, 0.5, 0, 0, 0, 31, 13, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/EastCorridor" unique_id=39794112]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/EastCorridor" unique_id=271437909]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="NorthCorridor" type="StaticBody3D" parent="Floors" unique_id=1560295239]
+transform = Transform3D(31, 0, 0, 0, 0.5, 0, 0, 0, 5, 0, -0.25, -13)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/NorthCorridor" unique_id=932706161]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/NorthCorridor" unique_id=2061382508]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="SouthCorridor" type="StaticBody3D" parent="Floors" unique_id=837142443]
+transform = Transform3D(31, 0, 0, 0, 0.5, 0, 0, 0, 5, 0, -0.25, 13)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/SouthCorridor" unique_id=1630817743]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/SouthCorridor" unique_id=171054708]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="CrossCorridor" type="StaticBody3D" parent="Floors" unique_id=1379006269]
+transform = Transform3D(31, 0, 0, 0, 0.5, 0, 0, 0, 5, 0, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/CrossCorridor" unique_id=1575995799]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/CrossCorridor" unique_id=1565629523]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="StartRoom" type="StaticBody3D" parent="Floors" unique_id=1983742881]
+transform = Transform3D(8, 0, 0, 0, 0.5, 0, 0, 0, 8, -13, -0.25, -20)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/StartRoom" unique_id=1211088509]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/StartRoom" unique_id=1901691173]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="StartConnector" type="StaticBody3D" parent="Floors" unique_id=1544030485]
+transform = Transform3D(6.5, 0, 0, 0, 0.5, 0, 0, 0, 6, -12.25, -0.25, -13.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/StartConnector" unique_id=2068625057]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/StartConnector" unique_id=1271999232]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodedRoom" type="StaticBody3D" parent="Floors" unique_id=958652691]
+transform = Transform3D(8, 0, 0, 0, 0.5, 0, 0, 0, 8, 22, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/FloodedRoom" unique_id=1950210066]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/FloodedRoom" unique_id=1183848819]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodedConnector" type="StaticBody3D" parent="Floors" unique_id=1125216819]
+transform = Transform3D(4.5, 0, 0, 0, 0.5, 0, 0, 0, 5, 16.25, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Floors/FloodedConnector" unique_id=818322092]
+material_override = SubResource("StandardMaterial3D_8jqgr")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Floors/FloodedConnector" unique_id=927724139]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Walls" type="Node3D" parent="." unique_id=1523884582 groups=["nav_source"]]
+
+[node name="OuterW" type="StaticBody3D" parent="Walls" unique_id=1262942158]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 31.5, -15.5, 1.75, -0.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/OuterW" unique_id=2032517334]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/OuterW" unique_id=242681215]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="OuterS" type="StaticBody3D" parent="Walls" unique_id=1425930045]
+transform = Transform3D(31, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 0, 1.75, 15.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/OuterS" unique_id=845800098]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/OuterS" unique_id=601708723]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="OuterE_N" type="StaticBody3D" parent="Walls" unique_id=1445301368]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 14.5, 15.5, 1.75, -8.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/OuterE_N" unique_id=950155254]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/OuterE_N" unique_id=269161208]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="OuterE_S" type="StaticBody3D" parent="Walls" unique_id=1262030193]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 14.5, 15.5, 1.75, 8.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/OuterE_S" unique_id=733604478]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/OuterE_S" unique_id=1038857972]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="OuterN" type="StaticBody3D" parent="Walls" unique_id=81849632]
+transform = Transform3D(24.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 3.25, 1.75, -15.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/OuterN" unique_id=1826885289]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/OuterN" unique_id=611677117]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="StartW" type="StaticBody3D" parent="Walls" unique_id=149603801]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 8, -17, 1.75, -20)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/StartW" unique_id=585141911]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/StartW" unique_id=98815362]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="StartS" type="StaticBody3D" parent="Walls" unique_id=2030474848]
+transform = Transform3D(8, 0, 0, 0, 3.5, 0, 0, 0, 0.5, -13, 1.75, -24)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/StartS" unique_id=1917766587]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/StartS" unique_id=1502772883]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="StartE" type="StaticBody3D" parent="Walls" unique_id=1695139483]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 8.5, -9, 1.75, -19.75)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/StartE" unique_id=1918931924]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/StartE" unique_id=290315597]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="StartN_left" type="StaticBody3D" parent="Walls" unique_id=2097883129]
+transform = Transform3D(1.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, -16.25, 1.75, -16)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/StartN_left" unique_id=812893573]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/StartN_left" unique_id=604712067]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodW_n" type="StaticBody3D" parent="Walls" unique_id=1098306696]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 1.5, 18, 1.75, -3.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/FloodW_n" unique_id=570545195]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/FloodW_n" unique_id=609374024]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodW_s" type="StaticBody3D" parent="Walls" unique_id=1392715712]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 1.5, 18, 1.75, 3.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/FloodW_s" unique_id=509526352]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/FloodW_s" unique_id=1748224777]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodN" type="StaticBody3D" parent="Walls" unique_id=1723525744]
+transform = Transform3D(8, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 22, 1.75, -4)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/FloodN" unique_id=1096407996]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/FloodN" unique_id=883389718]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodS" type="StaticBody3D" parent="Walls" unique_id=2084266284]
+transform = Transform3D(8, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 22, 1.75, 4)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/FloodS" unique_id=1367472062]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/FloodS" unique_id=2085869327]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodE" type="StaticBody3D" parent="Walls" unique_id=96517483]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 8, 26, 1.75, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/FloodE" unique_id=1683324723]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/FloodE" unique_id=541074080]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodConnN" type="StaticBody3D" parent="Walls" unique_id=803012192]
+transform = Transform3D(2.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 16.75, 1.75, 2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/FloodConnN" unique_id=266506071]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/FloodConnN" unique_id=1388796559]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="FloodConnS" type="StaticBody3D" parent="Walls" unique_id=1463298575]
+transform = Transform3D(2.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 16.75, 1.75, -2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/FloodConnS" unique_id=1025764192]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/FloodConnS" unique_id=1753224833]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn1" type="StaticBody3D" parent="Walls" unique_id=1344807370]
+transform = Transform3D(21, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 0, 1.75, -10.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn1" unique_id=1952073758]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn1" unique_id=1770842074]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn2" type="StaticBody3D" parent="Walls" unique_id=1633900779]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 8, 10.5, 1.75, -6.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn2" unique_id=1963606402]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn2" unique_id=810799590]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn3" type="StaticBody3D" parent="Walls" unique_id=1130649717]
+transform = Transform3D(6.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 7.25, 1.75, -2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn3" unique_id=764094496]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn3" unique_id=2068135363]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn4" type="StaticBody3D" parent="Walls" unique_id=1939924585]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 1.5, 4, 1.75, -3.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn4" unique_id=1930120064]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn4" unique_id=1456307185]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn5" type="StaticBody3D" parent="Walls" unique_id=460805923]
+transform = Transform3D(8, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 0, 1.75, -4)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn5" unique_id=476716109]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn5" unique_id=1688360744]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn6" type="StaticBody3D" parent="Walls" unique_id=773739373]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 1.5, -4, 1.75, -3.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn6" unique_id=1992401267]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn6" unique_id=83509525]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn7" type="StaticBody3D" parent="Walls" unique_id=1456595092]
+transform = Transform3D(6.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, -7.25, 1.75, -2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn7" unique_id=1860649683]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn7" unique_id=2085684634]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hn8" type="StaticBody3D" parent="Walls" unique_id=652328377]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 8, -10.5, 1.75, -6.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hn8" unique_id=1956626389]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hn8" unique_id=2134420604]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs1" type="StaticBody3D" parent="Walls" unique_id=1100790751]
+transform = Transform3D(21, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 0, 1.75, 10.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs1" unique_id=432475084]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs1" unique_id=309492761]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs2" type="StaticBody3D" parent="Walls" unique_id=1514462838]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 8, 10.5, 1.75, 6.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs2" unique_id=1464601988]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs2" unique_id=23775554]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs3" type="StaticBody3D" parent="Walls" unique_id=527054792]
+transform = Transform3D(6.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 7.25, 1.75, 2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs3" unique_id=566792065]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs3" unique_id=748180353]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs4" type="StaticBody3D" parent="Walls" unique_id=877020145]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 1.5, 4, 1.75, 3.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs4" unique_id=1606033946]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs4" unique_id=710521105]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs5" type="StaticBody3D" parent="Walls" unique_id=664372428]
+transform = Transform3D(8, 0, 0, 0, 3.5, 0, 0, 0, 0.5, 0, 1.75, 4)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs5" unique_id=1643084705]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs5" unique_id=85986344]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs6" type="StaticBody3D" parent="Walls" unique_id=2057804396]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 1.5, -4, 1.75, 3.25)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs6" unique_id=1423226005]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs6" unique_id=378861538]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs7" type="StaticBody3D" parent="Walls" unique_id=2002029558]
+transform = Transform3D(6.5, 0, 0, 0, 3.5, 0, 0, 0, 0.5, -7.25, 1.75, 2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs7" unique_id=1816552198]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs7" unique_id=1745532060]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Hs8" type="StaticBody3D" parent="Walls" unique_id=818722786]
+transform = Transform3D(0.5, 0, 0, 0, 3.5, 0, 0, 0, 8, -10.5, 1.75, 6.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Walls/Hs8" unique_id=283494702]
+material_override = SubResource("StandardMaterial3D_hfrff")
+mesh = SubResource("BoxMesh_firpc")
+
+[node name="Col" type="CollisionShape3D" parent="Walls/Hs8" unique_id=1908679736]
+shape = SubResource("BoxShape3D_00owb")
+
+[node name="Water" type="Node3D" parent="." unique_id=517915544]
+
+[node name="WaterPlane" type="MeshInstance3D" parent="Water" unique_id=398745393]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0.3, 0)
+material_override = SubResource("StandardMaterial3D_ulhbk")
+mesh = SubResource("BoxMesh_gn1t6")

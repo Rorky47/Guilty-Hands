@@ -11,8 +11,14 @@ extends Node3D
 
 
 func _ready() -> void:
-	# Bake from the static colliders tagged into the "nav_source" group (see the
-	# NavigationMesh's geometry settings). The hunter's activation_delay covers
-	# the bake + nav map sync before it starts pathfinding.
-	nav_region.bake_navigation_mesh()
 	hunter.caught.connect(catch_ui.show_caught)
+	# Let the region register on the navigation map for a couple of physics frames
+	# before baking. Baking during _ready — especially with the level as an
+	# instanced scene — can update the mesh before the region is on the map, so the
+	# bake never syncs and the map stays empty. The hunter's activation_delay still
+	# covers this before it starts pathfinding.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	# Bake from the static colliders tagged into the "nav_source" group (see the
+	# NavigationMesh's geometry settings).
+	nav_region.bake_navigation_mesh()
