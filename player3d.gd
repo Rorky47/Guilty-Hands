@@ -17,7 +17,13 @@ extends CharacterBody3D
 @export_group("Speed")
 @export var move_speed: float = 5.0
 @export var sprint_speed: float = 9.0
-@export var jump_velocity: float = 5.0
+
+@export_group("Jump & Gravity")
+@export var jump_velocity: float = 7.0
+## Upward/base gravity (m/s²). Higher than Godot's realistic 9.8 to cut apex hang.
+@export var gravity: float = 20.0
+## While falling, gravity is multiplied by this so you drop faster than you rise.
+@export var fall_multiplier: float = 1.8
 
 @export_group("Acceleration")
 ## How fast horizontal velocity ramps toward the target while grounded (m/s²).
@@ -43,9 +49,6 @@ extends CharacterBody3D
 
 @onready var spring_arm: SpringArm3D = $SpringArm3D
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
-
-# Project gravity (matches RigidBody/other physics), read once at startup.
-var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 
 
 func _ready() -> void:
@@ -78,7 +81,9 @@ func _physics_process(delta: float) -> void:
 	var on_floor := is_on_floor()
 
 	if not on_floor:
-		velocity.y -= _gravity * delta
+		# Asymmetric gravity: fall faster than you rise for a snappier, less floaty arc.
+		var g: float = gravity * (fall_multiplier if velocity.y < 0.0 else 1.0)
+		velocity.y -= g * delta
 
 	if Input.is_action_just_pressed("jump") and on_floor:
 		velocity.y = jump_velocity
