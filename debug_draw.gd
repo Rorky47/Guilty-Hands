@@ -76,6 +76,17 @@ func _on_noise_made(position: Vector3, radius: float) -> void:
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
+
+	# Tint by whether the hunter can actually hear this noise (path distance
+	# through the navmesh), so you can see which footsteps the walls swallow:
+	# GREEN = heard, RED = occluded/out of range.
+	var heard := false
+	var hunter := get_tree().get_first_node_in_group("hunter")
+	if hunter != null:
+		heard = hunter.can_hear(position, radius)
+	var mat := (_noise_mat.duplicate() as StandardMaterial3D)
+	mat.albedo_color = Color(0.2, 1.0, 0.3, 0.13) if heard else Color(1.0, 0.2, 0.2, 0.13)
+
 	var bubble := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = 1.0
@@ -83,7 +94,7 @@ func _on_noise_made(position: Vector3, radius: float) -> void:
 	mesh.radial_segments = 16
 	mesh.rings = 8
 	bubble.mesh = mesh
-	bubble.material_override = _noise_mat
+	bubble.material_override = mat
 	bubble.scale = Vector3(radius, radius, radius)
 	bubble.position = position
 	scene.add_child(bubble)

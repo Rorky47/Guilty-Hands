@@ -87,10 +87,11 @@ func _physics_process(delta: float) -> void:
 func _on_noise_made(position: Vector3, radius: float) -> void:
 	if _caught or state == State.INACTIVE:
 		return
-	# Heard only if within the noise's radius. This uses the noise *event's*
-	# position, never the player node — it's the hunter's sole knowledge of the
-	# player's whereabouts (i.e. a last-known-location).
-	if global_position.distance_to(position) <= radius:
+	# Heard only if within range *along the navmesh* (walls/corners lengthen or
+	# sever the route — see can_hear). The position is the noise event's, never
+	# the player node — it's the hunter's sole knowledge of the player's
+	# whereabouts (i.e. a last-known-location).
+	if can_hear(position, radius):
 		_last_heard = position
 		state = State.HUNTING
 		_set_destination(_snap_to_nav(position))
@@ -206,6 +207,40 @@ func _snap_to_nav(point: Vector3) -> Vector3:
 	if not map.is_valid():
 		return point
 	return NavigationServer3D.map_get_closest_point(map, point)
+
+
+## True if a noise at `position` with the given `radius` reaches the hunter.
+##
+## Sound occlusion: instead of straight-line distance, this measures how far the
+## sound has to travel *along the navmesh* — around walls and corners, the same
+## way the hunter would have to walk. A noise just past a wall is muffled by the
+## long way around; a noise in a sealed-off area is inaudible.
+##
+## Later phases: a closed door will carve a gap out of the navmesh, lengthening
+## or removing the path here — so this same check will block sound through a shut
+## door automatically, with no special-casing for doors.
+func can_hear(position: Vector3, radius: float) -> bool:
+	var map := nav_agent.get_navigation_map()
+	# Pre-bake / no map yet: fall back to straight-line so hearing still works.
+	if not map.is_valid():
+		return global_position.distance_to(position) <= radius
+
+	var path := NavigationServer3D.map_get_path(map, global_position, position, true)
+	# Fewer than two points means there's no route at all — inaudible.
+	if path.size() < 2:
+		return false
+
+	# Reachability guard: map_get_path returns the closest *reachable* point when
+	# the destination can't be reached (e.g. sealed behind a wall). If the path
+	# doesn't actually end at the noise, it didn't get there — treat as unheard,
+	# so a wall can't fake audibility via its nearest navmesh edge.
+	if path[path.size() - 1].distance_to(position) > 1.0:
+		return false
+
+	var path_length := 0.0
+	for i in range(1, path.size()):
+		path_length += path[i].distance_to(path[i - 1])
+	return path_length <= radius
 
 
 func _check_catch() -> void:
